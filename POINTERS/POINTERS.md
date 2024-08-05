@@ -12,3 +12,12 @@
   - Direct access
   - Complexity
   -  Unreadable code
+
+* *(float *)ptr; -> this means, that if originally ptr is a pointer to an int, this time we are casting him to be a pointer to a float number.
+* can do the same for all types... *(char *)ptr;
+* void==generic.. - can be anything, for example:
+  - void *ptr
+  - *(char *)ptr;
+  - *(int *)ptr;
+
+* malloc -> "gives" some memory in the heap, can be translated to a void ptr (can say generic pointer)..
