@@ -43,30 +43,66 @@
 
 // SECTION 2
 
-void bar() {
-  int nb; 
-  nb = 1337;
-}
+// void bar() {
+//   int nb; 
+//   nb = 1337;
+// }
 
-int *foo() {
-  // OLD
-  // int n;
-  // n = 42;
-  // return &n;
+// int *foo() {
+//   // OLD
+//   // int n;
+//   // n = 42;
+//   // return &n;
 
-  // NEW
-  int *n;
-  // n = malloc(sizeof(int)); // we dont write malloc in cpp.
-  *n = 42;
-  return n;
-}
+//   // NEW
+//   int *n;
+//   // n = malloc(sizeof(int)); // we dont write malloc in cpp.
+//   *n = 42;
+//   return n;
+// }
 
-int main () {
-  int *pn;
-  pn = foo();
-  std::cout << *pn << "\n";
-  bar();
-  std::cout << *pn << "\n";
-}
+// int main () {
+//   int *pn;
+//   pn = foo();
+//   std::cout << *pn << "\n";
+//   bar();
+//   std::cout << *pn << "\n";
+// }
 // what happens here is that the final result with the pointer pn is 1337, why? because it is using the same address as the value 42, its overwriting it!
 // to fix this issue we need to declare malloc, to clear some space for our pointer that other data will not be ovewritten.
+
+// SECTION 3
+
+
+// int main() {
+
+//   int arr[10];
+//   // arr == &arr[10] in mem, meaning -> arr is kind of a pointer..(void)
+
+//   int v[10];
+//   v[1] = 42;
+  // *(v + 1) == v[1]
+
+  // arr[5] == 5[arr]; -> because [ ] == arr[n] == *(arr + n) 
+  // arr[5] == *(arr + 5)
+  // 5[arr] == *(5 + arr)
+
+//   return 0;
+// }
+
+
+// SECTION 4
+
+int main() {
+  int nb = 20;
+  int *ptr1 = &nb;
+  int **ptr2 = &ptr1;
+  std::cout << ptr2 << "\n";
+  std::cout << **ptr2 << "\n";
+  std::cout << *ptr2 << "\n";
+  std::cout << ptr1 << "\n";
+  std::cout << *ptr1 << "\n";
+  std::cout << &ptr1 << "\n";
+
+  return 0;
+}
