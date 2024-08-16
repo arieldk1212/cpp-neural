@@ -93,16 +93,54 @@
 
 // SECTION 4
 
-int main() {
-  int nb = 20;
-  int *ptr1 = &nb;
-  int **ptr2 = &ptr1;
-  std::cout << ptr2 << "\n";
-  std::cout << **ptr2 << "\n";
-  std::cout << *ptr2 << "\n";
-  std::cout << ptr1 << "\n";
-  std::cout << *ptr1 << "\n";
-  std::cout << &ptr1 << "\n";
+// int main() {
+//   int nb = 20;
+//   int *ptr1 = &nb;
+//   int **ptr2 = &ptr1;
+//   std::cout << ptr2 << "\n";
+//   std::cout << **ptr2 << "\n";
+//   std::cout << *ptr2 << "\n";
+//   std::cout << ptr1 << "\n";
+//   std::cout << *ptr1 << "\n";
+//   std::cout << &ptr1 << "\n";
 
-  return 0;
-}
+//   return 0;
+// }
+
+// void func_by_ref(int* age) {
+//   std::cout << *age << "\n";
+// }
+
+// void func_by_pointer(const char* name) {
+//   std::cout << name << "\n";
+// }
+// void func_by_pointer_2(int* test) {
+//   std::cout << *test << "\n";
+// }
+
+// int main() {
+
+//   int x = 10;
+//   func_by_ref(&x);
+  
+//   const char* first_name_1 = "ariel";
+//   func_by_pointer(first_name_1);
+
+//   int* y = new int{5};
+//   func_by_pointer_2(y);
+//   delete y;
+// }
+
+// safer to use ref in finction when dealing with large variables that we dont want to copy in the memory, we just use refs :) use const!
+// try to avoid any type of poitner as much as you can! rather special types of pointers, important when dealing with a large scaling system that memory is important
+
+#include <memory>
+
+// std::unique_ptr -> ptr that abelongs to a certain object or function, when the certain action is done, ptr deletes auto.
+//        std::unique_ptr<MyStruct> instance = std::make_unique<MyStruct>(10);
+// std::shared_ptr -> the oppesite of unique, can be shared around many applications.
+//        std::shared_ptr<MyStruct> instance = std::make_shared<MyStruct>(10);
+// std::weak_ptr
+
+// we dont have to delete these types of pointers the language is keeping track with them and deletes it auto.
+// on regular pointers we have to do it! delete X
