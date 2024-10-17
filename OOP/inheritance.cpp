@@ -4,6 +4,9 @@
 // methods overriding
 // the inherited class gets constructed once the lower class get constructed (in our case once B is constructed, A is also constructed).
 
+// in inheritance, if you init from the base calls a ptr to a new derived class, a virtual table (vtable __vtbl) inside mem is initislized
+// and is pointing to the methods which the programmer is refrencing.
+
 #include <iostream>
 
 class A {
