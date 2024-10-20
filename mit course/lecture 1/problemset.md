@@ -31,3 +31,7 @@ void move(D, i, k, j) {
 }
 ```
 ## problem 3
+* linked list -> Node(int data, Node* next); LinkedList(Node* head);
+
+# QUIZ 1
+* 2-> a->n^2
