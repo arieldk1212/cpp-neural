@@ -24,11 +24,21 @@ void shift_left(int arr[], int num) {
 }
 
 
+struct Node {
+  int data;
+  Node* next;
+};
+
 class Linkedlist {
 public:
+  void insert(int x) {
+    Node* node = new Node; // heap allocated arr, dynamic.
+    node->data = x; // appending data to m_data.
+    node->next = head; // current
+    head = node; // building.
+  }
 private:
-
-
+  Node* head;
 };
 
 
