@@ -34,4 +34,5 @@
 .vscode
 .*.h.swp
 .*.cpp.swp
+.*.*.swp
 .idea
