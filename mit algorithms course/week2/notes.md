@@ -11,3 +11,5 @@
 * solve merge sort by using merge sort
 
 ## Hashing
+* prove that you cant find(k) faster than O(logn)
+* show how to find(k) faster than O(logn)

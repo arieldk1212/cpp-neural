@@ -2,7 +2,7 @@
 #include <string>
 
 int main () {
-  int tests, a, n[a]; 
+  int tests, a, n[a];
   std::cin>>tests;
 
   while (tests--) {
