@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <mutex>
 
 
 // creational pattern that lets you ensure that a class only has one instance
@@ -11,4 +12,11 @@
 // thread safe singleton example:
 class Singleton {
 public:
+protected:
+  Singleton(const std::string value)
+    : value_(value) {}
+  std::string value_;
+private:
+  static Singleton* pinstance_;
+  static std::mutex mutex_;
 };
