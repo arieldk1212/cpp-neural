@@ -12,5 +12,4 @@
 // threa safe singleton example:
 class Singleton {
 public:
-
 };
