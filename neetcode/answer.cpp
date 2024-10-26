@@ -23,4 +23,6 @@ int main() {
 }
 */
 
+class Solution {
 
+};
