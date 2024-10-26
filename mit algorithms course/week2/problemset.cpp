@@ -21,7 +21,7 @@ void reverse(int arr[], int i, int k) {
 }
 
 void move(int arr[], int i, int k, int j) {
-  
+
 }
 
 int main () {
@@ -31,3 +31,8 @@ int main () {
   reverse(arr, i, k);
   std::cout << arr;
 }
+
+// 1-4
+/*
+
+*/
