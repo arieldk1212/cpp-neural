@@ -20,6 +20,10 @@ void reverse(int arr[], int i, int k) {
   reverse(arr, i, k);
 }
 
+void move(int arr[], int i, int k, int j) {
+  
+}
+
 int main () {
   int arr[5] = {1,2,3,4,5};
   int i = 0;
