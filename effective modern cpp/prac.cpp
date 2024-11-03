@@ -2,6 +2,9 @@
 // Created by Ariel Kriheli on 03/11/2024.
 //
 
-void f() {
+#include <iostream>
 
-  }
+int main() {
+  std::cout << "good!";
+  return 0;
+}
