@@ -17,6 +17,7 @@
 // and its in sync, it adds protection to the resource from being simultaneously accessed
 // by multiple threads -> OWNERSHIP SEMANTICS.
 // lock -> locked. until unlock is called.
+// better for 1 and more values.
 
 /* MUTEX - TYPES OF LOCKS */
 // std::lock_guard -> a way to handle lock and unlock, saves us the lines and the need to 
@@ -34,6 +35,7 @@
 // to sum up atomic -> one thread writes, the other read from the resource, if thats true this
 // behavior is "well-defined". it makes sure object may establish inter-thread sync
 // and order non-atomic memory accesses.
+// better for one value.
 
 /* GENERAL */
 // atomic is mostly for counters and small operations
