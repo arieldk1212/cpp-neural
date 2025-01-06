@@ -1,2 +1,0 @@
-// Standard Template Library
-
