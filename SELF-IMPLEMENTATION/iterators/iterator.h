@@ -35,16 +35,16 @@ private:
     }
 
     /**
-     * @brief friend for allowing to access iterator private member, also we
+     * @brief friend for allowing to access iterator private member, also we (but usage with a, b. not other)
      * dont need to define != because the compiler should be samrt enough, but
      * will do anyway.
      */
-    friend bool operator==(const Iterator &a, const Iterator &b) {
-      return a.m_IteratorPtr == b.m_IteratorPtr;
+    bool operator==(const Iterator &other) const {
+      return m_IteratorPtr == other.m_IteratorPtr;
     }
 
-    friend bool operator!=(const Iterator &a, const Iterator &b) {
-      return a.m_IteratorPtr != b.m_IteratorPtr;
+    bool operator!=(const Iterator &other) const {
+      return m_IteratorPtr != other.m_IteratorPtr;
     }
 
   private:
