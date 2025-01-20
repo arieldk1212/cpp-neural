@@ -13,7 +13,41 @@ private:
     using IterPtr = IteratorType *;
 
     Iterator(IteratorType ptr) : m_IteratorPtr(ptr) {}
+    ~Iterator() {
+      if (m_IteratorPtr != nullptr) {
+        delete m_IteratorPtr;
+      }
+    }
 
+    IteratorType *operator->() { return m_IteratorPtr; }
+
+    IteratorType &operator*() const { return *m_IteratorPtr; }
+
+    Iterator &operator++() {
+      ++m_IteratorPtr;
+      return *this;
+    }
+
+    Iterator operator++(int) {
+      Iterator tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+
+    /**
+     * @brief friend for allowing to access iterator private member, also we
+     * dont need to define != because the compiler should be samrt enough, but
+     * will do anyway.
+     */
+    friend bool operator==(const Iterator &a, const Iterator &b) {
+      return a.m_IteratorPtr == b.m_IteratorPtr;
+    }
+
+    friend bool operator!=(const Iterator &a, const Iterator &b) {
+      return a.m_IteratorPtr != b.m_IteratorPtr;
+    }
+
+  private:
     IterPtr m_IteratorPtr;
   };
 
@@ -30,8 +64,6 @@ public:
   size_t GetIteratorCapacity() { return m_IteratorCapacity; }
 
   IteratorType &operator[](size_t index) { return m_IteratorData[index]; }
-
-  IteratorType &operator!=()
 
   Iterator begin() { return Iterator(&m_IteratorData[0]); }
 
