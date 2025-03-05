@@ -18,7 +18,6 @@ include_directories(${LLVM_INCLUDE_DIRS})
 
 list(APPEND project_libraries
 LLVMCore
-LLVMSupport
 )
 
 list(APPEND sources
