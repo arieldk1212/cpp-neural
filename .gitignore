@@ -36,3 +36,5 @@
 .*.cpp.swp
 .*.*.swp
 .idea
+.cache
+/build
