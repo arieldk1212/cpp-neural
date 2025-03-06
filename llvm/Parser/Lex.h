@@ -1,6 +1,7 @@
 #ifndef LEX_H
 #define LEX_H
 
+#include "AST.h"
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
@@ -20,8 +21,8 @@ enum Token {
   tok_number = -5
 };
 
-inline std::string IndentifierStr; /* Case: Token is -4 */
-inline double NumVal;              /* Case: Token is -5 */
+inline static std::string IndentifierStr; /* Case: Token is -4 */
+inline static double NumVal;              /* Case: Token is -5 */
 
 static int GetTok() {
   static int LastChar = ' ';
@@ -67,6 +68,16 @@ static int GetTok() {
   return ThisChar;
 }
 
+static int CurTok;
+static int GetNextToken() { return CurTok = GetTok(); }
+
 }; // namespace Lex
+
+/* Parsing Methods */
+
+static std::unique_ptr<ExprAST> ParseNumberExpr();
+static std::unique_ptr<ExprAST> ParseParenExpr();
+static std::unique_ptr<ExprAST> ParseIndentifierExpr();
+static std::unique_ptr<ExprAST> ParsePrimary();
 
 #endif
