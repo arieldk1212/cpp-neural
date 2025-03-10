@@ -21,7 +21,8 @@ LLVMCore
 )
 
 list(APPEND sources
-Main.cpp
+Main.cc
+Parser/AST.CC
 )
 
 add_executable(Main ${sources})

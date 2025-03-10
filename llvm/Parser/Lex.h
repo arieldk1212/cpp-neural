@@ -1,10 +1,12 @@
 #ifndef LEX_H
 #define LEX_H
 
-#include "AST.h"
+#include "ASTTools.h"
+#include <_ctype.h>
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <map>
 #include <string>
 
 namespace Lex {
@@ -71,6 +73,19 @@ static int GetTok() {
 static int CurTok;
 static int GetNextToken() { return CurTok = GetTok(); }
 
+static std::map<char, int> BinopPrecedence;
+static int GetTokPrecedence() {
+  if (!isascii(CurTok)) {
+    return -1;
+  }
+  int TokPrec = BinopPrecedence[CurTok];
+  if (TokPrec <= 0) {
+    return -1;
+  }
+  return TokPrec;
+  // BinopPrecedence['<] = 10; i.e. (defined in Main).
+}
+
 }; // namespace Lex
 
 /* Parsing Methods */
@@ -79,5 +94,43 @@ static std::unique_ptr<ExprAST> ParseNumberExpr();
 static std::unique_ptr<ExprAST> ParseParenExpr();
 static std::unique_ptr<ExprAST> ParseIndentifierExpr();
 static std::unique_ptr<ExprAST> ParsePrimary();
+static std::unique_ptr<ExprAST> ParseExpression();
+static std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
+                                              std::unique_ptr<ExprAST> LHS);
+static std::unique_ptr<ProtorypeExprAST> ParsePrototype();
+static std::unique_ptr<FunctionExprAST> ParseDefinition();
+static std::unique_ptr<ProtorypeExprAST> ParseExtern();
+static std::unique_ptr<FunctionExprAST> ParseTopLevelExpr();
+
+/* Main Loop Definition */
+
+static void HandleDefinition();
+
+static void HandleExtern();
+
+static void HandleTopLevelExpression();
+
+static void MainLoop() {
+  while (true) {
+
+    fprintf(stderr, "ready> ");
+    switch (Lex::CurTok) {
+    case Lex::tok_eof:
+      return;
+    case ';':
+      Lex::GetNextToken();
+      break;
+    case Lex::tok_def:
+      HandleDefinition();
+      break;
+    case Lex::tok_extern:
+      HandleExtern();
+      break;
+    default:
+      HandleTopLevelExpression();
+      break;
+    }
+  }
+}
 
 #endif
