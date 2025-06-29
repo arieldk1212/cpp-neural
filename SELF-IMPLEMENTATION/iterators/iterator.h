@@ -35,9 +35,9 @@ private:
     }
 
     /**
-     * @brief friend for allowing to access iterator private member, also we (but usage with a, b. not other)
-     * dont need to define != because the compiler should be samrt enough, but
-     * will do anyway.
+     * @brief friend for allowing to access iterator private member, also we
+     * (but usage with a, b. not other) dont need to define != because the
+     * compiler should be samrt enough, but will do anyway.
      */
     bool operator==(const Iterator &other) const {
       return m_IteratorPtr == other.m_IteratorPtr;

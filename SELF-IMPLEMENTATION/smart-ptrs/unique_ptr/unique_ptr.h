@@ -24,9 +24,7 @@ public:
     object = std::exchange(other.object, nullptr);
     return *this;
   }
-  unique_ptr(unique_ptr &&ptr) {
-    object = std::exchange(other.object, nullptr);
-  }
+  unique_ptr(unique_ptr &&ptr) { object = std::exchange(ptr.object, nullptr); }
 
   void reset() { delete_ptr(); }
 
