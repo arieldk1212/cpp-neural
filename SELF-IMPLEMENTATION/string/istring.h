@@ -4,9 +4,18 @@
 #include <string>
 
 
+struct NonHeapString {
+
+};
+
+struct HeapString {
+  
+};
 
 class IString {
 public:
+  IString(const char *data) {}
+  ~IString() {}
 private:
 
 };

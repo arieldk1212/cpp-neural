@@ -1,4 +1,6 @@
+#include <deque>
 #include <set>
+#include <stack>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -168,5 +170,32 @@ public:
       maxlen = std::max(maxlen, r - l + 1);
     }
     return maxlen;
+  }
+
+  std::string flipstring(std::string data, int index) {
+    // mission is to flip the string at index, at o(n) time complexity, o(1)
+    // space complexity.
+    int n = data.size();
+    int l = 0, r = index - 1;
+    while (l < r) {
+      std::swap(data[l], data[r]);
+      l++;
+      r--;
+    }
+    l = index;
+    r = n - 1;
+    while (l < r) {
+      std::swap(data[l], data[r]);
+      l++;
+      r--;
+    }
+    l = 0;
+    r = n - 1;
+    while (l < r) {
+      std::swap(data[l], data[r]);
+      l++;
+      r--;
+    }
+    return data;
   }
 };
