@@ -1,0 +1,3 @@
+/Users/arielkriheli/Projects/cpp-neural/CONCURRENCY/build/CMakeFiles/THREADCPP.dir
+/Users/arielkriheli/Projects/cpp-neural/CONCURRENCY/build/CMakeFiles/edit_cache.dir
+/Users/arielkriheli/Projects/cpp-neural/CONCURRENCY/build/CMakeFiles/rebuild_cache.dir

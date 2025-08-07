@@ -1,6 +1,7 @@
 #ifndef THREADPOOL_H
 #define THREADPOOL_H
 
+#include <algorithm>
 #include <condition_variable>
 #include <cstdlib>
 #include <ctime>
@@ -75,6 +76,54 @@ private:
   std::vector<std::string> m_SortingAlgorithms;
 };
 
+struct Algorithms {
+  /**
+   * @todo implement each algorithm here.
+   */
+  bool operator()(const std::string &Name, std::vector<unsigned int> &Data) {
+    if (Name == "Bubble Sort") {
+      for (size_t i = 0; i < Data.size(); ++i) {
+        for (size_t j = 0; j < Data.size(); ++j) {
+          if (Data[j] > Data[j + 1]) {
+            std::swap(Data[j], Data[j + 1]);
+          }
+        }
+      }
+      return true;
+    } else if (Name == "Selection Sort") {
+      unsigned int Min = Data[0];
+      for (size_t i = 0; i < Data.size(); ++i) {
+        int MinIndx = i;
+        for (size_t j = i + 1; j < Data.size(); ++j) {
+          if (Data[j] < Data[MinIndx]) {
+            MinIndx = j;
+          }
+        }
+        std::swap(Data[i], Data[MinIndx]);
+      }
+      return true;
+    } else if (Name == "Insertion Sort") {
+      for (size_t i = 0; i < Data.size(); ++i) {
+        unsigned int Key = Data[i];
+        unsigned int Prev = i - 1;
+        while (Prev >= 0 && Key < Data[Prev]) {
+          Data[Prev + 1] = Data[Prev];
+          Prev--;
+        }
+        Data[Prev + 1] = Key;
+      }
+      return true;
+    } else if (Name == "Merge Sort") {
+      return true;
+    } else if (Name == "Quick Sort") {
+      return true;
+    } else if (Name == "Heap Sort") {
+      return true;
+    }
+    return false;
+  }
+};
+
 class Worker {
   /**
    * @brief Executes the job, Report result or timing to WorkerBenchmark.
@@ -86,9 +135,7 @@ public:
   void ExecuteJob(Job &job) {
     std::string Algo = job.GetRequirements().second;
     std::vector<unsigned int> ScrambledData = job.GetRequirements().first;
-    /**
-     * @todo process the algorithm and sort the data.
-     */
+    m_Algos(Algo, ScrambledData);
     job.IsJobFinished(ScrambledData);
     if (job.JobStatus()) {
       m_JobStatus = true;
@@ -96,6 +143,7 @@ public:
   }
 
 private:
+  Algorithms m_Algos;
   bool m_JobStatus;
   std::thread m_Worker;
 };
@@ -111,7 +159,7 @@ public:
   ~ConQueue() = default;
 
   void PushJob(Job &&job) { m_ActiveJobs.push(std::move(job)); }
-  Job PopJob() {
+  [[nodiscard("Get The Job!")]] Job PopJob() {
     auto job = m_ActiveJobs.front();
     m_ActiveJobs.pop();
     return job;
@@ -150,7 +198,17 @@ public:
       : m_SharedQueue(SharedQueue) {}
   ~Consumer() = default;
 
+  void RunJob() {
+    GetJob();
+    m_Worker.ExecuteJob(m_CurrentJob);
+  }
+
 private:
+  void GetJob() { m_CurrentJob = m_SharedQueue->PopJob(); }
+
+private:
+  Job m_CurrentJob;
+  Worker m_Worker;
   std::shared_ptr<ConQueue> m_SharedQueue;
 };
 
