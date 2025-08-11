@@ -2,88 +2,42 @@
 #define THREADPOOL_H
 
 #include <algorithm>
+#include <array>
+#include <chrono>
 #include <condition_variable>
 #include <cstdlib>
 #include <ctime>
 #include <future>
 #include <mutex>
 #include <queue>
+#include <random>
+#include <stdexcept>
 #include <thread>
 
-/**
- * @brief to create our thread pool we need to first take care of a concurrent
- * queue - add tasks, create a threadworkers data structure, execution
- * @brief create a simple broker, prod consumer.
- * @todo FLOW -> Producer (Creates a Job), ConQueue (Holds the Job), Consumer
- * (Pulls Job from ConQueue), Worker (Executes Job Logic).
- */
+namespace Datavar {
+static constexpr size_t DATA_SIZE{100};
+}; // namespace Datavar
 
-struct RandomGenerator {
-  unsigned int operator()() {
-    srand(time(0));
-    return 1 + (rand() % 101);
-  }
-};
+namespace RandomGenerator {
+static std::random_device rd;
+static std::mt19937 gen(rd());
+static std::uniform_int_distribution<> AlgoDist(1, 5);
+static std::uniform_int_distribution<> DataDist(1, 101);
+}; // namespace RandomGenerator
 
-class Job {
+class Algorithms {
 public:
-  Job()
-      : m_JobStatus{false}, m_DataSize{100},
-        m_SortingAlgorithms{"Bubble Sort", "Selection Sort", "Insertion Sort",
-                            "Merge Sort",  "Quick Sort",     "Heap Sort"},
-        m_ScrambledData(m_DataSize) {
-    for (int i = 0; i < m_DataSize; ++i) {
-      m_ScrambledData[i] = RandomGenerator()();
-    }
+  Algorithms()
+      : m_Algorithms{"Bubble Sort", "Selection Sort", "Insertion Sort",
+                     "Merge Sort", "Heap Sort"} {
+    m_ChosenAlgo =
+        m_Algorithms[RandomGenerator::AlgoDist(RandomGenerator::gen)];
   }
-  ~Job() = default;
-
-  bool JobStatus() const { return m_JobStatus; }
-  std::pair<std::vector<unsigned int>, std::string> GetRequirements() const {
-    /**
-     * @brief this function return the scrambled data and the algorithm that
-     * needs to be used.
-     */
-    return {m_ScrambledData, m_SortingAlgorithms[rand() % m_DataSize]};
-  }
-
-  void IsJobFinished(const std::vector<unsigned int> &Data) {
-    std::vector<unsigned int> SortedData = m_ScrambledData;
-    if (SetCorrectedData(Data)) {
-      std::sort(SortedData.begin(), SortedData.end());
-      if (SortedData == m_ScrambledData) {
-        m_JobStatus = true;
-      }
-    } else {
-      m_JobStatus = false;
-    }
-  }
-
-private:
-  bool SetCorrectedData(const std::vector<unsigned int> &Data) {
-    if (Data.size() != m_ScrambledData.size()) {
-      throw "Sizes are different.";
-      return false;
-    }
-    m_ScrambledData = Data;
-    return true;
-  }
-
-private:
-  bool m_JobStatus;
-  size_t m_DataSize;
-  std::vector<unsigned int> m_ScrambledData;
-  std::vector<std::string> m_SortingAlgorithms;
-};
-
-struct Algorithms {
-  /**
-   * @todo implement each algorithm here.
-   */
+  std::string GetChosenAlgo() const { return m_ChosenAlgo; }
   bool operator()(const std::string &Name, std::vector<unsigned int> &Data) {
     if (Name == "Bubble Sort") {
-      for (size_t i = 0; i < Data.size(); ++i) {
-        for (size_t j = 0; j < Data.size(); ++j) {
+      for (size_t i = 0; i < Data.size() - 1; ++i) {
+        for (size_t j = 0; j < Data.size() - i - 1; ++j) {
           if (Data[j] > Data[j + 1]) {
             std::swap(Data[j], Data[j + 1]);
           }
@@ -104,8 +58,8 @@ struct Algorithms {
       return true;
     } else if (Name == "Insertion Sort") {
       for (size_t i = 0; i < Data.size(); ++i) {
-        unsigned int Key = Data[i];
-        unsigned int Prev = i - 1;
+        int Key = Data[i];
+        int Prev = i - 1;
         while (Prev >= 0 && Key < Data[Prev]) {
           Data[Prev + 1] = Data[Prev];
           Prev--;
@@ -114,14 +68,141 @@ struct Algorithms {
       }
       return true;
     } else if (Name == "Merge Sort") {
-      return true;
-    } else if (Name == "Quick Sort") {
+      auto Merge = [](std::vector<unsigned int> &Data, unsigned int l,
+                      unsigned int m, unsigned int r) -> void {
+        int n1 = m - l + 1;
+        int n2 = r - m;
+        std::vector<int> lv(n1), rv(n2);
+        for (int i = 0; i < n1; ++i) {
+          lv[i] = Data[l + i];
+        }
+        for (int i = 0; i < n2; ++i) {
+          rv[i] = Data[m + 1 + i];
+        }
+        int i = 0, j = 0;
+        int k = l;
+        while (i < n1 && j < n2) {
+          if (lv[i] <= rv[i]) {
+            Data[k] = lv[i];
+            i++;
+          } else {
+            Data[k] = rv[j];
+            j++;
+          }
+          k++;
+        }
+        while (i < n1) {
+          Data[k] = lv[i];
+          i++;
+          k++;
+        }
+        while (j < n2) {
+          Data[k] = rv[j];
+          j++;
+          k++;
+        }
+      };
+      auto MergeSort = [&](auto &&self, std::vector<unsigned int> &Data,
+                           unsigned int left, unsigned int right) -> void {
+        if (left >= right) {
+          return;
+        }
+        int mid = left + (right - left) / 2;
+        self(self, Data, left, mid);
+        self(self, Data, mid + 1, right);
+        Merge(Data, left, mid, right);
+      };
+      MergeSort(MergeSort, Data, 0, Data.size() - 1);
       return true;
     } else if (Name == "Heap Sort") {
+      auto Heapify = [&](auto &&self, std::vector<unsigned int> &Data,
+                         unsigned int n, unsigned int i) -> void {
+        int largest = i;
+        int l = 2 * i + 1;
+        int r = 2 * i + 2;
+        if (l < n && Data[l] > Data[largest]) {
+          largest = l;
+        }
+        if (r < n && Data[r] > Data[largest]) {
+          largest = r;
+        }
+        if (largest != i) {
+          std::swap(Data[i], Data[largest]);
+          self(self, Data, n, largest);
+        }
+      };
+      auto HeapSort = [&](std::vector<unsigned int> &Data) -> void {
+        int n = Data.size();
+        for (size_t i = n / 2 - 1; i >= 0; i--) {
+          Heapify(Heapify, Data, n, i);
+        }
+        for (size_t i = n - 1; i > 0; i--) {
+          std::swap(Data[0], Data[i]);
+          Heapify(Heapify, Data, i, 0);
+        }
+      };
+      HeapSort(Data);
       return true;
     }
     return false;
   }
+
+private:
+  std::string m_ChosenAlgo;
+  std::array<std::string, 5> m_Algorithms;
+};
+
+class Job {
+public:
+  Job() : m_JobStatus{false}, m_ScrambledData(Datavar::DATA_SIZE) {
+    for (int i = 0; i < Datavar::DATA_SIZE; ++i) {
+      m_ScrambledData[i] = RandomGenerator::DataDist(RandomGenerator::gen);
+    }
+    m_SortedData = m_ScrambledData;
+    std::sort(m_SortedData.begin(), m_SortedData.end());
+  }
+  ~Job() = default;
+
+  bool JobStatus() const { return m_JobStatus; }
+  Algorithms &GetAlgorithms() { return m_Algorithm; }
+  std::pair<std::vector<unsigned int>, std::string> GetRequirements() {
+    /**
+     * @brief this function return the scrambled data and the algorithm that
+     * needs to be used.
+     */
+    return {m_ScrambledData, m_Algorithm.GetChosenAlgo()};
+  }
+
+  void IsJobFinished(const std::vector<unsigned int> &Data) {
+    if (SetCorrectedData(Data)) {
+      m_JobStatus = true;
+    } else {
+      m_JobStatus = false;
+    }
+  }
+
+private:
+  bool SetCorrectedData(const std::vector<unsigned int> &Data) {
+    if (Data.size() != m_ScrambledData.size()) {
+      throw std::length_error("Sizes Are Different.");
+      return false;
+    }
+    if (m_SortedData == Data) {
+      return true;
+    }
+    return false;
+  }
+
+private:
+  bool m_JobStatus;
+  Algorithms m_Algorithm;
+  std::vector<unsigned int> m_SortedData;
+  std::vector<unsigned int> m_ScrambledData;
+};
+
+class WorkerBenchmark {
+public:
+private:
 };
 
 class Worker {
@@ -129,25 +210,32 @@ class Worker {
    * @brief Executes the job, Report result or timing to WorkerBenchmark.
    */
 public:
-  Worker() : m_JobStatus(false) {}
+  Worker() : m_JobStatus(false), m_Cache("") {}
   ~Worker() = default;
 
+  bool GetWorkerStatus() const { return m_JobStatus; }
+
+  const WorkerBenchmark &GetWorkerStats() const { return m_WorkerStats; }
+
   void ExecuteJob(Job &job) {
-    std::string Algo = job.GetRequirements().second;
-    std::vector<unsigned int> ScrambledData = job.GetRequirements().first;
-    m_Algos(Algo, ScrambledData);
-    job.IsJobFinished(ScrambledData);
+    auto Data = job.GetRequirements();
+    if (m_Cache == Data.second) {
+      job.GetAlgorithms()(m_Cache, Data.first);
+    } else {
+      m_Cache = Data.second;
+      job.GetAlgorithms()(m_Cache, Data.first);
+    }
+    job.IsJobFinished(Data.first);
     if (job.JobStatus()) {
       m_JobStatus = true;
     }
   }
 
 private:
-  Algorithms m_Algos;
   bool m_JobStatus;
-  std::thread m_Worker;
+  std::string m_Cache;
+  WorkerBenchmark m_WorkerStats;
 };
-class WorkerBenchmark {};
 
 class ConQueue {
   /**
@@ -159,7 +247,7 @@ public:
   ~ConQueue() = default;
 
   void PushJob(Job &&job) { m_ActiveJobs.push(std::move(job)); }
-  [[nodiscard("Get The Job!")]] Job PopJob() {
+  Job PopJob() {
     auto job = m_ActiveJobs.front();
     m_ActiveJobs.pop();
     return job;
@@ -209,6 +297,15 @@ private:
 private:
   Job m_CurrentJob;
   Worker m_Worker;
+  std::shared_ptr<ConQueue> m_SharedQueue;
+};
+
+class TT {
+public:
+  TT() : m_SharedQueue(std::make_shared<ConQueue>()) {}
+
+private:
+  std::vector<Worker> m_Workers;
   std::shared_ptr<ConQueue> m_SharedQueue;
 };
 
