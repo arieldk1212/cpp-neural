@@ -7,7 +7,6 @@
 #include <condition_variable>
 #include <cstdlib>
 #include <ctime>
-#include <future>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -19,14 +18,14 @@
 
 namespace Datavar {
 static constexpr int DATA_SIZE{100};
-static constexpr int THREADS{100};
-static constexpr float MS = 0.001;
+static constexpr int THREADS{5};
+static constexpr float MS = 0.001f;
 }; // namespace Datavar
 
 namespace RandomGenerator {
 static std::random_device rd;
 static std::mt19937 gen(rd());
-static std::uniform_int_distribution<> AlgoDist(1, 5);
+static std::uniform_int_distribution<> AlgoDist(0, 4);
 static std::uniform_int_distribution<> DataDist(1, 101);
 }; // namespace RandomGenerator
 
@@ -40,113 +39,105 @@ public:
   }
   std::string GetChosenAlgo() const { return m_ChosenAlgo; }
   bool operator()(const std::string &Name, std::vector<unsigned int> &Data) {
+    if (Data.size() <= 1)
+      return true;
+
     if (Name == "Bubble Sort") {
-      for (size_t i = 0; i < Data.size() - 1; ++i) {
-        for (size_t j = 0; j < Data.size() - i - 1; ++j) {
-          if (Data[j] > Data[j + 1]) {
+      for (size_t i = 0; i + 1 < Data.size(); ++i) {
+        for (size_t j = 0; j + 1 < Data.size() - i; ++j) {
+          if (Data[j] > Data[j + 1])
             std::swap(Data[j], Data[j + 1]);
-          }
         }
       }
       return true;
+
     } else if (Name == "Selection Sort") {
-      unsigned int Min = Data[0];
       for (size_t i = 0; i < Data.size(); ++i) {
-        int MinIndx = i;
+        size_t min_idx = i;
         for (size_t j = i + 1; j < Data.size(); ++j) {
-          if (Data[j] < Data[MinIndx]) {
-            MinIndx = j;
-          }
+          if (Data[j] < Data[min_idx])
+            min_idx = j;
         }
-        std::swap(Data[i], Data[MinIndx]);
+        std::swap(Data[i], Data[min_idx]);
       }
       return true;
+
     } else if (Name == "Insertion Sort") {
-      for (size_t i = 0; i < Data.size(); ++i) {
-        int Key = Data[i];
-        int Prev = i - 1;
-        while (Prev >= 0 && Key < Data[Prev]) {
-          Data[Prev + 1] = Data[Prev];
-          Prev--;
+      for (size_t i = 1; i < Data.size(); ++i) {
+        unsigned int key = Data[i];
+        // use signed index to avoid unsigned underflow
+        for (std::ptrdiff_t p = static_cast<std::ptrdiff_t>(i) - 1;
+             p >= 0 && key < Data[static_cast<size_t>(p)]; --p) {
+          Data[static_cast<size_t>(p) + 1] = Data[static_cast<size_t>(p)];
+          if (p == 0 || !(key < Data[static_cast<size_t>(p - 1)])) {
+            Data[static_cast<size_t>(p)] = key;
+            break;
+          }
         }
-        Data[Prev + 1] = Key;
+        // handle the case where we shifted all the way to index 0
+        if (key < Data[0])
+          Data[0] = key;
       }
       return true;
+
     } else if (Name == "Merge Sort") {
-      auto Merge = [](std::vector<unsigned int> &Data, unsigned int l,
-                      unsigned int m, unsigned int r) -> void {
-        int n1 = m - l + 1;
-        int n2 = r - m;
-        std::vector<int> lv(n1), rv(n2);
-        for (int i = 0; i < n1; ++i) {
-          lv[i] = Data[l + i];
-        }
-        for (int i = 0; i < n2; ++i) {
-          rv[i] = Data[m + 1 + i];
-        }
-        int i = 0, j = 0;
-        int k = l;
+      auto Merge = [](std::vector<unsigned int> &A, size_t l, size_t m,
+                      size_t r) {
+        const size_t n1 = m - l + 1;
+        const size_t n2 = r - m;
+        std::vector<unsigned int> L(n1), R(n2);
+        for (size_t i = 0; i < n1; ++i)
+          L[i] = A[l + i];
+        for (size_t j = 0; j < n2; ++j)
+          R[j] = A[m + 1 + j];
+        size_t i = 0, j = 0, k = l;
         while (i < n1 && j < n2) {
-          if (lv[i] <= rv[i]) {
-            Data[k] = lv[i];
-            i++;
-          } else {
-            Data[k] = rv[j];
-            j++;
-          }
-          k++;
+          if (L[i] <= R[j])
+            A[k++] = L[i++];
+          else
+            A[k++] = R[j++];
         }
-        while (i < n1) {
-          Data[k] = lv[i];
-          i++;
-          k++;
-        }
-        while (j < n2) {
-          Data[k] = rv[j];
-          j++;
-          k++;
-        }
+        while (i < n1)
+          A[k++] = L[i++];
+        while (j < n2)
+          A[k++] = R[j++];
       };
-      auto MergeSort = [&](auto &&self, std::vector<unsigned int> &Data,
-                           unsigned int left, unsigned int right) -> void {
-        if (left >= right) {
+      auto MergeSort = [&](auto &&self, std::vector<unsigned int> &A,
+                           size_t left, size_t right) -> void {
+        if (left >= right)
           return;
-        }
-        int mid = left + (right - left) / 2;
-        self(self, Data, left, mid);
-        self(self, Data, mid + 1, right);
-        Merge(Data, left, mid, right);
+        const size_t mid = left + (right - left) / 2;
+        self(self, A, left, mid);
+        self(self, A, mid + 1, right);
+        Merge(A, left, mid, right);
       };
       MergeSort(MergeSort, Data, 0, Data.size() - 1);
       return true;
+
     } else if (Name == "Heap Sort") {
-      auto Heapify = [&](auto &&self, std::vector<unsigned int> &Data,
-                         unsigned int n, unsigned int i) -> void {
-        int largest = i;
-        int l = 2 * i + 1;
-        int r = 2 * i + 2;
-        if (l < n && Data[l] > Data[largest]) {
-          largest = l;
-        }
-        if (r < n && Data[r] > Data[largest]) {
-          largest = r;
-        }
-        if (largest != i) {
-          std::swap(Data[i], Data[largest]);
-          self(self, Data, n, largest);
-        }
-      };
-      auto HeapSort = [&](std::vector<unsigned int> &Data) -> void {
-        int n = Data.size();
-        for (size_t i = n / 2 - 1; i >= 0; i--) {
-          Heapify(Heapify, Data, n, i);
-        }
-        for (size_t i = n - 1; i > 0; i--) {
-          std::swap(Data[0], Data[i]);
-          Heapify(Heapify, Data, i, 0);
+      auto Heapify = [&](auto &&self, std::vector<unsigned int> &A, size_t n,
+                         size_t i) -> void {
+        for (;;) {
+          size_t largest = i;
+          const size_t l = 2 * i + 1;
+          const size_t r = 2 * i + 2;
+          if (l < n && A[l] > A[largest])
+            largest = l;
+          if (r < n && A[r] > A[largest])
+            largest = r;
+          if (largest == i)
+            break;
+          std::swap(A[i], A[largest]);
+          i = largest;
         }
       };
-      HeapSort(Data);
+      const size_t n = Data.size();
+      for (size_t i = n / 2; i-- > 0;)
+        Heapify(Heapify, Data, n, i);
+      for (size_t i = n; i-- > 1;) {
+        std::swap(Data[0], Data[i - 1]);
+        Heapify(Heapify, Data, i - 1, 0);
+      }
       return true;
     }
     return false;
@@ -161,7 +152,8 @@ class Job {
 public:
   Job() : m_JobStatus{false}, m_ScrambledData(Datavar::DATA_SIZE) {
     for (int i = 0; i < Datavar::DATA_SIZE; ++i) {
-      m_ScrambledData[i] = RandomGenerator::DataDist(RandomGenerator::gen);
+      m_ScrambledData[(size_t)i] =
+          (unsigned int)RandomGenerator::DataDist(RandomGenerator::gen);
     }
     m_SortedData = m_ScrambledData;
     std::sort(m_SortedData.begin(), m_SortedData.end());
@@ -172,31 +164,19 @@ public:
   Algorithms &GetAlgorithms() { return m_Algorithm; }
 
   std::pair<std::vector<unsigned int>, std::string> GetRequirements() {
-    /**
-     * @brief this function return the scrambled data and the algorithm that
-     * needs to be used.
-     */
     return {m_ScrambledData, m_Algorithm.GetChosenAlgo()};
   }
 
   void IsJobFinished(const std::vector<unsigned int> &Data) {
-    if (SetCorrectedData(Data)) {
-      m_JobStatus = true;
-    } else {
-      m_JobStatus = false;
-    }
+    m_JobStatus = SetCorrectedData(Data);
   }
 
 private:
   bool SetCorrectedData(const std::vector<unsigned int> &Data) {
     if (Data.size() != m_ScrambledData.size()) {
       throw std::length_error("Sizes Are Different.");
-      return false;
     }
-    if (m_SortedData == Data) {
-      return true;
-    }
-    return false;
+    return m_SortedData == Data;
   }
 
 private:
@@ -223,7 +203,7 @@ public:
                    .time_since_epoch()
                    .count();
     m_BenchmarkTime = static_cast<float>(End - Start) * Datavar::MS;
-    std::cout << "WORKER BENCHMARKED AT ------> " << m_BenchmarkTime;
+    std::cout << "WORKER BENCHMARKED AT ------> " << m_BenchmarkTime << "\n";
   }
 
 private:
@@ -236,22 +216,16 @@ class Worker {
    * @brief Executes the job, Report result or timing to WorkerBenchmark.
    */
 public:
-  Worker() : m_JobStatus(false), m_Cache("") {}
-  ~Worker() { m_WorkerStats.~WorkerBenchmark(); }
+  Worker() : m_JobStatus(false) {}
 
   bool GetWorkerStatus() const { return m_JobStatus; }
 
   const WorkerBenchmark &GetWorkerStats() const { return m_WorkerStats; }
 
   void ExecuteJob(Job &job) {
-    auto Data = job.GetRequirements();
-    if (m_Cache == Data.second) {
-      job.GetAlgorithms()(m_Cache, Data.first);
-    } else {
-      m_Cache = Data.second;
-      job.GetAlgorithms()(m_Cache, Data.first);
-    }
-    job.IsJobFinished(Data.first);
+    auto Req = job.GetRequirements();
+    job.GetAlgorithms()(Req.second, Req.first);
+    job.IsJobFinished(Req.first);
     if (job.JobStatus()) {
       m_JobStatus = true;
     }
@@ -259,7 +233,6 @@ public:
 
 private:
   bool m_JobStatus;
-  std::string m_Cache;
   WorkerBenchmark m_WorkerStats;
 };
 
@@ -269,21 +242,42 @@ class ConQueue {
    * pop (Consumers) without corrupting data.
    */
 public:
-  ConQueue() = default;
-  ~ConQueue() = default;
+  ConQueue() : m_Done(false) {}
 
-  bool IsEmpty() const { return m_Jobs.empty(); }
+  void PushJob(Job &&job) {
+    {
+      std::lock_guard<std::mutex> lock(m_ConMutex);
+      m_Jobs.push(std::move(job));
+    }
+    m_ConCondv.notify_one();
+  }
 
-  void PushJob(Job &&job) { m_Jobs.push(std::move(job)); }
-
-  Job PopJob() {
-    auto job = m_Jobs.front();
+  std::optional<Job> PopJob() {
+    std::unique_lock<std::mutex> lock(m_ConMutex);
+    m_ConCondv.wait(lock, [this] {
+      return m_Done || !m_Jobs.empty();
+    }); // wake up (return) if system shut down, or job in queue.
+    if (m_Done && m_Jobs.empty()) {
+      return std::nullopt;
+    }
+    auto job = std::move(m_Jobs.front());
     m_Jobs.pop();
-    return job; // RVO
+    return job;
+  }
+
+  void Shutdown() {
+    {
+      std::lock_guard<std::mutex> lock(m_ConMutex);
+      m_Done = true;
+    }
+    m_ConCondv.notify_all();
   }
 
 private:
+  bool m_Done;
+  std::mutex m_ConMutex;
   std::queue<Job> m_Jobs;
+  std::condition_variable m_ConCondv;
 };
 
 class Producer {
@@ -291,9 +285,8 @@ class Producer {
    * @brief Generates the job, pushes them into the ConQueue.
    */
 public:
-  Producer(std::shared_ptr<ConQueue> SharedQueue)
-      : m_SharedQueue(SharedQueue) {}
-  ~Producer() = default;
+  explicit Producer(std::shared_ptr<ConQueue> SharedQueue)
+      : m_SharedQueue(std::move(SharedQueue)) {}
 
   void Produce() {
     Job job;
@@ -312,19 +305,19 @@ class Consumer {
    * Waits for job, pop the job off the queue, passes them to a Worker.
    */
 public:
-  Consumer(std::shared_ptr<ConQueue> SharedQueue)
-      : m_SharedQueue(SharedQueue) {}
-  ~Consumer() = default;
+  explicit Consumer(std::shared_ptr<ConQueue> SharedQueue)
+      : m_SharedQueue(std::move(SharedQueue)) {}
+
+  bool GetJob() {
+    auto job = m_SharedQueue->PopJob();
+    if (!job) {
+      return false;
+    }
+    m_CurrentJob = std::move(*job);
+    return true;
+  }
 
   void RunJob() { m_Worker.ExecuteJob(m_CurrentJob); }
-
-  std::optional<Job> GetJob() {
-    if (!m_SharedQueue->IsEmpty()) {
-      m_CurrentJob = m_SharedQueue->PopJob();
-      return m_CurrentJob;
-    }
-    return std::nullopt;
-  }
 
 private:
   Job m_CurrentJob;
@@ -334,55 +327,30 @@ private:
 
 class TPool {
 public:
-  TPool()
-      : m_SharedQueue(std::make_shared<ConQueue>()), m_Stop(false),
-        m_Consumer(std::make_unique<Consumer>(m_SharedQueue)),
-        m_Producer(std::make_unique<Producer>(m_SharedQueue)) {
-    for (size_t i = 0; i < Datavar::THREADS; ++i) {
+  TPool() {
+    m_SharedQueue = std::make_shared<ConQueue>();
+    m_Producer = std::make_unique<Producer>(m_SharedQueue);
+    m_Threads.reserve((size_t)Datavar::THREADS);
+    for (size_t i = 0; i < (size_t)Datavar::THREADS; ++i) {
       m_Threads.emplace_back([this] {
-        for (;;) {
-          std::unique_lock<std::mutex> lock(m_TTMtx);
-          m_TTCondv.wait(
-              lock, [this] { return m_Stop || !m_SharedQueue->IsEmpty(); });
-          if (m_Stop && m_SharedQueue->IsEmpty()) {
-            return;
-          }
-          m_Consumer->GetJob();
-          if (m_Consumer->GetJob().has_value()) {
-            m_SharedQueue->PopJob();
-            lock.unlock();
-            m_Consumer->RunJob();
-          }
+        Consumer consumer(m_SharedQueue);
+        while (consumer.GetJob()) {
+          consumer.RunJob();
         }
       });
     }
   }
   ~TPool() {
-    std::unique_lock<std::mutex> lock(m_TTMtx);
-    m_Stop = true;
-    lock.unlock();
-    m_TTCondv.notify_all();
+    m_SharedQueue->Shutdown();
     for (auto &Thread : m_Threads) {
       Thread.join();
     }
   }
 
-  void Enque() {
-    std::unique_lock<std::mutex> lock(m_TTMtx);
-    m_Producer->Produce();
-    lock.unlock();
-    m_TTCondv.notify_one();
-  }
+  void Enque() { m_Producer->Produce(); }
 
 private:
-  std::mutex m_TTMtx;
-  std::condition_variable m_TTCondv;
-
-private:
-  bool m_Stop;
-  std::vector<Worker> m_Workers;
   std::vector<std::thread> m_Threads;
-  std::unique_ptr<Consumer> m_Consumer;
   std::unique_ptr<Producer> m_Producer;
   std::shared_ptr<ConQueue> m_SharedQueue;
 };

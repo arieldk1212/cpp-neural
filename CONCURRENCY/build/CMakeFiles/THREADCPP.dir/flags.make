@@ -6,7 +6,7 @@ CXX_DEFINES =
 
 CXX_INCLUDES = 
 
-CXX_FLAGSarm64 =  -pthread -std=gnu++20 -arch arm64
+CXX_FLAGSarm64 =  -pthread -O2 -std=gnu++20 -arch arm64
 
-CXX_FLAGS =  -pthread -std=gnu++20 -arch arm64
+CXX_FLAGS =  -pthread -O2 -std=gnu++20 -arch arm64
 

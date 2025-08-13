@@ -1,7 +1,7 @@
 [
 {
   "directory": "/Users/arielkriheli/Projects/cpp-neural/CONCURRENCY/build",
-  "command": "/usr/bin/c++    -pthread -std=gnu++20 -arch arm64 -o CMakeFiles/THREADCPP.dir/threadpool.cpp.o -c /Users/arielkriheli/Projects/cpp-neural/CONCURRENCY/threadpool.cpp",
+  "command": "/usr/bin/c++    -pthread -O2 -std=gnu++20 -arch arm64 -o CMakeFiles/THREADCPP.dir/threadpool.cpp.o -c /Users/arielkriheli/Projects/cpp-neural/CONCURRENCY/threadpool.cpp",
   "file": "/Users/arielkriheli/Projects/cpp-neural/CONCURRENCY/threadpool.cpp",
   "output": "CMakeFiles/THREADCPP.dir/threadpool.cpp.o"
 }
