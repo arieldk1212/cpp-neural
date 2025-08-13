@@ -1,9 +1,9 @@
 #include "threadpool.h"
 
 int main() {
-  std::shared_ptr<ConQueue> Queue = std::make_shared<ConQueue>();
-  Producer Prod(Queue);
-  Consumer Cons(Queue);
+  TPool threadpool;
 
-  Cons.RunJob();
+  for (int i = 0; i < 10; ++i) {
+    threadpool.Enque();
+  }
 }

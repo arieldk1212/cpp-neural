@@ -8,14 +8,19 @@
 #include <cstdlib>
 #include <ctime>
 #include <future>
+#include <iostream>
+#include <memory>
 #include <mutex>
+#include <optional>
 #include <queue>
 #include <random>
 #include <stdexcept>
 #include <thread>
 
 namespace Datavar {
-static constexpr size_t DATA_SIZE{100};
+static constexpr int DATA_SIZE{100};
+static constexpr int THREADS{100};
+static constexpr float MS = 0.001;
 }; // namespace Datavar
 
 namespace RandomGenerator {
@@ -161,10 +166,11 @@ public:
     m_SortedData = m_ScrambledData;
     std::sort(m_SortedData.begin(), m_SortedData.end());
   }
-  ~Job() = default;
 
   bool JobStatus() const { return m_JobStatus; }
+
   Algorithms &GetAlgorithms() { return m_Algorithm; }
+
   std::pair<std::vector<unsigned int>, std::string> GetRequirements() {
     /**
      * @brief this function return the scrambled data and the algorithm that
@@ -202,7 +208,27 @@ private:
 
 class WorkerBenchmark {
 public:
+  // in the ctor start the start, dtor stop the time.
+  WorkerBenchmark() { m_StartTime = std::chrono::high_resolution_clock::now(); }
+  ~WorkerBenchmark() { Stop(); }
+
+  void Stop() {
+    std::chrono::time_point<std::chrono::high_resolution_clock> StopTime =
+        std::chrono::high_resolution_clock::now();
+    auto Start =
+        std::chrono::time_point_cast<std::chrono::microseconds>(m_StartTime)
+            .time_since_epoch()
+            .count();
+    auto End = std::chrono::time_point_cast<std::chrono::microseconds>(StopTime)
+                   .time_since_epoch()
+                   .count();
+    m_BenchmarkTime = static_cast<float>(End - Start) * Datavar::MS;
+    std::cout << "WORKER BENCHMARKED AT ------> " << m_BenchmarkTime;
+  }
+
 private:
+  float m_BenchmarkTime;
+  std::chrono::time_point<std::chrono::high_resolution_clock> m_StartTime;
 };
 
 class Worker {
@@ -211,7 +237,7 @@ class Worker {
    */
 public:
   Worker() : m_JobStatus(false), m_Cache("") {}
-  ~Worker() = default;
+  ~Worker() { m_WorkerStats.~WorkerBenchmark(); }
 
   bool GetWorkerStatus() const { return m_JobStatus; }
 
@@ -246,31 +272,35 @@ public:
   ConQueue() = default;
   ~ConQueue() = default;
 
-  void PushJob(Job &&job) { m_ActiveJobs.push(std::move(job)); }
+  bool IsEmpty() const { return m_Jobs.empty(); }
+
+  void PushJob(Job &&job) { m_Jobs.push(std::move(job)); }
+
   Job PopJob() {
-    auto job = m_ActiveJobs.front();
-    m_ActiveJobs.pop();
-    return job;
+    auto job = m_Jobs.front();
+    m_Jobs.pop();
+    return job; // RVO
   }
 
 private:
-  std::queue<Job> m_ActiveJobs;
+  std::queue<Job> m_Jobs;
 };
 
 class Producer {
   /**
    * @brief Generates the job, pushes them into the ConQueue.
    */
-
 public:
   Producer(std::shared_ptr<ConQueue> SharedQueue)
       : m_SharedQueue(SharedQueue) {}
   ~Producer() = default;
 
-  void GenerateJob() {
+  void Produce() {
     Job job;
     m_SharedQueue->PushJob(std::move(job));
   }
+
+  void ProduceLoop();
 
 private:
   std::shared_ptr<ConQueue> m_SharedQueue;
@@ -286,13 +316,15 @@ public:
       : m_SharedQueue(SharedQueue) {}
   ~Consumer() = default;
 
-  void RunJob() {
-    GetJob();
-    m_Worker.ExecuteJob(m_CurrentJob);
-  }
+  void RunJob() { m_Worker.ExecuteJob(m_CurrentJob); }
 
-private:
-  void GetJob() { m_CurrentJob = m_SharedQueue->PopJob(); }
+  std::optional<Job> GetJob() {
+    if (!m_SharedQueue->IsEmpty()) {
+      m_CurrentJob = m_SharedQueue->PopJob();
+      return m_CurrentJob;
+    }
+    return std::nullopt;
+  }
 
 private:
   Job m_CurrentJob;
@@ -300,12 +332,58 @@ private:
   std::shared_ptr<ConQueue> m_SharedQueue;
 };
 
-class TT {
+class TPool {
 public:
-  TT() : m_SharedQueue(std::make_shared<ConQueue>()) {}
+  TPool()
+      : m_SharedQueue(std::make_shared<ConQueue>()), m_Stop(false),
+        m_Consumer(std::make_unique<Consumer>(m_SharedQueue)),
+        m_Producer(std::make_unique<Producer>(m_SharedQueue)) {
+    for (size_t i = 0; i < Datavar::THREADS; ++i) {
+      m_Threads.emplace_back([this] {
+        for (;;) {
+          std::unique_lock<std::mutex> lock(m_TTMtx);
+          m_TTCondv.wait(
+              lock, [this] { return m_Stop || !m_SharedQueue->IsEmpty(); });
+          if (m_Stop && m_SharedQueue->IsEmpty()) {
+            return;
+          }
+          m_Consumer->GetJob();
+          if (m_Consumer->GetJob().has_value()) {
+            m_SharedQueue->PopJob();
+            lock.unlock();
+            m_Consumer->RunJob();
+          }
+        }
+      });
+    }
+  }
+  ~TPool() {
+    std::unique_lock<std::mutex> lock(m_TTMtx);
+    m_Stop = true;
+    lock.unlock();
+    m_TTCondv.notify_all();
+    for (auto &Thread : m_Threads) {
+      Thread.join();
+    }
+  }
+
+  void Enque() {
+    std::unique_lock<std::mutex> lock(m_TTMtx);
+    m_Producer->Produce();
+    lock.unlock();
+    m_TTCondv.notify_one();
+  }
 
 private:
+  std::mutex m_TTMtx;
+  std::condition_variable m_TTCondv;
+
+private:
+  bool m_Stop;
   std::vector<Worker> m_Workers;
+  std::vector<std::thread> m_Threads;
+  std::unique_ptr<Consumer> m_Consumer;
+  std::unique_ptr<Producer> m_Producer;
   std::shared_ptr<ConQueue> m_SharedQueue;
 };
 
