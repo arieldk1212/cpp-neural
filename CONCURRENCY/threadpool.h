@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <cstdlib>
@@ -17,9 +18,9 @@
 #include <thread>
 
 namespace Datavar {
-static constexpr int DATA_SIZE{100};
-static constexpr int THREADS{5};
 static constexpr float MS = 0.001f;
+static constexpr int DATA_SIZE{100};
+static const unsigned int THREADS{std::thread::hardware_concurrency()};
 }; // namespace Datavar
 
 namespace RandomGenerator {
@@ -222,7 +223,7 @@ public:
 
   const WorkerBenchmark &GetWorkerStats() const { return m_WorkerStats; }
 
-  void ExecuteJob(Job &job) {
+  void ExecuteSortingJob(Job &job) {
     auto Req = job.GetRequirements();
     job.GetAlgorithms()(Req.second, Req.first);
     job.IsJobFinished(Req.first);
@@ -274,9 +275,9 @@ public:
   }
 
 private:
-  bool m_Done;
   std::mutex m_ConMutex;
   std::queue<Job> m_Jobs;
+  std::atomic_bool m_Done;
   std::condition_variable m_ConCondv;
 };
 
@@ -317,7 +318,7 @@ public:
     return true;
   }
 
-  void RunJob() { m_Worker.ExecuteJob(m_CurrentJob); }
+  void RunSortingJob() { m_Worker.ExecuteSortingJob(m_CurrentJob); }
 
 private:
   Job m_CurrentJob;
@@ -335,7 +336,7 @@ public:
       m_Threads.emplace_back([this] {
         Consumer consumer(m_SharedQueue);
         while (consumer.GetJob()) {
-          consumer.RunJob();
+          consumer.RunSortingJob();
         }
       });
     }
