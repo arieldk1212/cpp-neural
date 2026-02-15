@@ -57,8 +57,8 @@ auto PinThreadToCore(int core_id) {
 template <typename T, typename... A>
 auto CreateAndStartThread(int core_id, const std::string &name, T &&fn,
                           A &&...args) noexcept {
-  std::atomic<bool> running{false};
   std::atomic<bool> failed{false};
+  std::atomic<bool> running{false};
 
   auto thread_body = [&]() {
     if (core_id >= 0 && !PinThreadToCore(core_id)) {
