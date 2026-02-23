@@ -25,10 +25,10 @@ public:
   }
 
 private:
-/**
- * @brief we set read/write idx using alignas with the hardware size to prevent
- * false sharing (see false sharing).
- */
+  /**
+   * @brief we set read/write idx using alignas with the hardware size to
+   * prevent false sharing (see false sharing).
+   */
 #ifdef __cpp_lib_hardware_interference_size
   static constexpr std::size_t kCacheLineSize =
       std::hardware_destructive_interference_size;
