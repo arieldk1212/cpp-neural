@@ -12,6 +12,7 @@
  * that has the purpose of acting as a single consumer single producer queue
  * that is supposed to handle heavy traffic and provide a safe queue for
  * multithreaded environments.
+ https://github.com/rigtorp/SPSCQueue/blob/master/include/rigtorp/SPSCQueue.h
  */
 
 template <typename T, typename Allocator = std::allocator<T>>
